@@ -16,3 +16,5 @@ app/build/
 /history*.png
 /settings*.png
 /ui*.xml
+/v*.png
+/v*.xml
