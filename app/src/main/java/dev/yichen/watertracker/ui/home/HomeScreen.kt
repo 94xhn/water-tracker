@@ -148,13 +148,23 @@ fun HomeScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            Text(
-                "Quick Add",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Start)
-            )
-            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Quick Add",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (entries.isNotEmpty()) {
+                    androidx.compose.material3.TextButton(onClick = { vm.undoLast() }) {
+                        Text("↩ Undo last", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 settings.cupSizes.forEach { ml ->
                     OutlinedButton(onClick = { vm.addDrink(ml) }) {

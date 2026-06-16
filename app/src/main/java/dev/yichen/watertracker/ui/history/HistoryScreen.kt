@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,6 +31,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,6 +49,7 @@ fun HistoryScreen(
 ) {
     val days by vm.days.collectAsState()
     val settings by vm.settings.collectAsState()
+    val weekStats by vm.weekStats.collectAsState()
 
     Scaffold(
         topBar = {
@@ -80,6 +84,9 @@ fun HistoryScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {
+                    StatsCard(stats = weekStats, goalMl = settings.goalMl)
+                }
                 items(days, key = { it.dayStartMs }) { day ->
                     DayCard(day = day, goalMl = settings.goalMl)
                 }
@@ -142,5 +149,52 @@ private fun EntryRow(entry: DrinkEntry, fmt: SimpleDateFormat) {
             "${entry.drinkType.emoji} ${entry.amountMl} ml",
             style = MaterialTheme.typography.bodySmall
         )
+    }
+}
+
+@Composable
+private fun StatsCard(stats: WeekStats, goalMl: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "7-Day Summary",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StatItem(
+                    label = "Daily avg",
+                    value = "${stats.avgMl} ml",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                StatItem(
+                    label = "Goal met",
+                    value = "${stats.goalMetDays} / ${stats.totalDays} days",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                StatItem(
+                    label = "Goal",
+                    value = "$goalMl ml",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = color, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = color)
     }
 }

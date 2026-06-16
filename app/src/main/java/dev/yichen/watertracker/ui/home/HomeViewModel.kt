@@ -46,6 +46,11 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repo.deleteDrink(id) }
     }
 
+    fun undoLast() {
+        val last = entries.value.firstOrNull() ?: return
+        viewModelScope.launch { repo.deleteDrink(last.id) }
+    }
+
     private fun dayStartMs(ms: Long): Long {
         val cal = Calendar.getInstance()
         cal.timeInMillis = ms
