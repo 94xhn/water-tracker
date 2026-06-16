@@ -13,12 +13,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = (app as WaterTrackerApp).container.repository
+    private val goalNotifier = (app as WaterTrackerApp).container.goalNotifier
 
     val entries: StateFlow<List<DrinkEntry>> = repo.todayEntries
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -35,6 +41,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     ) { entries, settings ->
         computeStreak(entries, settings.goalMl)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    init {
+        combine(repo.todayEntries, repo.settings) { ents, s ->
+            ents.sumOf { it.effectiveMl } >= s.goalMl && s.goalMl > 0
+        }.distinctUntilChanged()
+            .drop(1)
+            .filter { it }
+            .onEach { goalNotifier.notifyIfNeeded() }
+            .launchIn(viewModelScope)
+    }
 
     fun selectDrinkType(type: DrinkType) { _selectedDrinkType.value = type }
 

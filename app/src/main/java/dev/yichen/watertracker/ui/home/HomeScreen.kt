@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -113,9 +114,17 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            WaterProgressArc(totalMl = totalMl, goalMl = settings.goalMl, progress = progress)
+            val goalMet = progress >= 1f
+            WaterProgressArc(totalMl = totalMl, goalMl = settings.goalMl, progress = progress, goalMet = goalMet)
 
-            if (streak > 0) {
+            if (goalMet) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "🎉 Goal reached!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF2E7D32)
+                )
+            } else if (streak > 0) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "🔥 $streak-day streak",
@@ -229,8 +238,8 @@ fun HomeScreen(
 }
 
 @Composable
-private fun WaterProgressArc(totalMl: Int, goalMl: Int, progress: Float) {
-    val primary = MaterialTheme.colorScheme.primary
+private fun WaterProgressArc(totalMl: Int, goalMl: Int, progress: Float, goalMet: Boolean = false) {
+    val primary = if (goalMet) Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val pct = (progress * 100).toInt().coerceIn(0, 100)
 

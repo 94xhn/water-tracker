@@ -6,17 +6,23 @@ import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 
 const val CHANNEL_REMINDER = "water_reminder"
+const val CHANNEL_GOAL = "goal_achieved"
+const val NOTIF_ID_GOAL = 1001
 
 fun ensureChannel(context: Context) {
     val mgr = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    if (mgr.getNotificationChannel(CHANNEL_REMINDER) != null) return
-    val ch = NotificationChannel(
-        CHANNEL_REMINDER,
-        "Drink Water Reminders",
-        NotificationManager.IMPORTANCE_DEFAULT
-    )
-    ch.description = "Periodic reminders to drink water"
-    mgr.createNotificationChannel(ch)
+    if (mgr.getNotificationChannel(CHANNEL_REMINDER) == null) {
+        mgr.createNotificationChannel(
+            NotificationChannel(CHANNEL_REMINDER, "Drink Water Reminders", NotificationManager.IMPORTANCE_DEFAULT)
+                .also { it.description = "Periodic reminders to drink water" }
+        )
+    }
+    if (mgr.getNotificationChannel(CHANNEL_GOAL) == null) {
+        mgr.createNotificationChannel(
+            NotificationChannel(CHANNEL_GOAL, "Goal Achieved", NotificationManager.IMPORTANCE_DEFAULT)
+                .also { it.description = "Celebration when daily goal is reached" }
+        )
+    }
 }
 
 fun areNotificationsAllowed(context: Context): Boolean =
