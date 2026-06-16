@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import dev.yichen.watertracker.domain.model.DrinkType
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,7 +71,9 @@ fun HomeScreen(
 ) {
     val entries by vm.entries.collectAsState()
     val settings by vm.settings.collectAsState()
-    val totalMl = entries.sumOf { it.amountMl }
+    val selectedType by vm.selectedDrinkType.collectAsState()
+    val streak by vm.streak.collectAsState()
+    val totalMl = entries.sumOf { it.effectiveMl }
     val progress = if (settings.goalMl > 0) totalMl.toFloat() / settings.goalMl else 0f
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -109,12 +115,44 @@ fun HomeScreen(
 
             WaterProgressArc(totalMl = totalMl, goalMl = settings.goalMl, progress = progress)
 
-            Spacer(Modifier.height(24.dp))
+            if (streak > 0) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "🔥 $streak-day streak",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                "Drink type",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Start)
+            )
+            Spacer(Modifier.height(4.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(DrinkType.entries) { type ->
+                    FilterChip(
+                        selected = selectedType == type,
+                        onClick = { vm.selectDrinkType(type) },
+                        label = { Text("${type.emoji} ${type.displayName}") }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 "Quick Add",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Start)
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -225,8 +263,10 @@ private fun WaterProgressArc(totalMl: Int, goalMl: Int, progress: Float) {
 @Composable
 private fun DrinkEntryRow(entry: DrinkEntry, onDelete: () -> Unit) {
     val fmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val effectiveNote = if (entry.drinkType != dev.yichen.watertracker.domain.model.DrinkType.WATER)
+        " (${entry.effectiveMl} ml effective)" else ""
     ListItem(
-        headlineContent = { Text("${entry.amountMl} ml") },
+        headlineContent = { Text("${entry.drinkType.emoji} ${entry.amountMl} ml$effectiveNote") },
         supportingContent = { Text(fmt.format(Date(entry.timestampMs))) },
         trailingContent = {
             IconButton(onClick = onDelete) {

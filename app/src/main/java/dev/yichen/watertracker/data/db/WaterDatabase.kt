@@ -15,9 +15,17 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE drink_entries ADD COLUMN drinkTypeName TEXT NOT NULL DEFAULT 'WATER'"
+        )
+    }
+}
+
 @Database(
     entities = [DrinkEntryEntity::class, SettingsEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class WaterDatabase : RoomDatabase() {
@@ -27,7 +35,7 @@ abstract class WaterDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): WaterDatabase =
             Room.databaseBuilder(context, WaterDatabase::class.java, "water.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

@@ -10,3 +10,9 @@
 app/build/
 *.apk
 *.aab
+/screenshot_*.png
+/home*.png
+/after_add*.png
+/history*.png
+/settings*.png
+/ui*.xml

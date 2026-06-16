@@ -139,7 +139,7 @@ private fun EntryRow(entry: DrinkEntry, fmt: SimpleDateFormat) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            "${entry.amountMl} ml",
+            "${entry.drinkType.emoji} ${entry.amountMl} ml",
             style = MaterialTheme.typography.bodySmall
         )
     }

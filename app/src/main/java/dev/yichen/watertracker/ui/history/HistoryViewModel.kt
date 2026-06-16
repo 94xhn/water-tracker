@@ -55,7 +55,7 @@ class HistoryViewModel(app: Application) : AndroidViewModel(app) {
                 DayHistory(
                     dayStartMs = dayMs,
                     dateLabel = fmt.format(Date(dayMs)),
-                    totalMl = dayEntries.sumOf { it.amountMl },
+                    totalMl = dayEntries.sumOf { it.effectiveMl },
                     entries = dayEntries.sortedByDescending { it.timestampMs }
                 )
             }

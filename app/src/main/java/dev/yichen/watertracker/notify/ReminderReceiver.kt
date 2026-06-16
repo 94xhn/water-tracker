@@ -36,9 +36,11 @@ class ReminderReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDER)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Time to drink water!")
-            .setContentText("Stay hydrated — tap to log your drink")
+            .setContentTitle("💧 Time to drink water!")
+            .setContentText("Stay hydrated — quick-log or open app")
             .setContentIntent(pi)
+            .addAction(0, "Log 200 ml", QuickLogReceiver.pendingIntent(context, 200))
+            .addAction(0, "Log 250 ml", QuickLogReceiver.pendingIntent(context, 250))
             .setAutoCancel(true)
             .build()
 

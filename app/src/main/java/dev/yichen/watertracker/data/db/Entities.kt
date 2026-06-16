@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 data class DrinkEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val amountMl: Int,
-    val timestampMs: Long
+    val timestampMs: Long,
+    val drinkTypeName: String = "WATER"
 )
 
 @Entity(tableName = "settings")

@@ -5,9 +5,13 @@ import dev.yichen.watertracker.data.db.SettingsEntity
 import dev.yichen.watertracker.data.db.WaterDatabase
 import dev.yichen.watertracker.domain.GoalCalculator
 import dev.yichen.watertracker.domain.model.DrinkEntry
+import dev.yichen.watertracker.domain.model.DrinkType
 import dev.yichen.watertracker.domain.model.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class WaterRepository(db: WaterDatabase) {
     private val drinkDao = db.drinkEntryDao()
@@ -23,8 +27,14 @@ class WaterRepository(db: WaterDatabase) {
     fun entriesFrom(startMs: Long): Flow<List<DrinkEntry>> =
         drinkDao.entriesFrom(startMs).map { list -> list.map { it.toDomain() } }
 
-    suspend fun addDrink(amountMl: Int) {
-        drinkDao.insert(DrinkEntryEntity(amountMl = amountMl, timestampMs = System.currentTimeMillis()))
+    suspend fun addDrink(amountMl: Int, drinkType: DrinkType = DrinkType.WATER) {
+        drinkDao.insert(
+            DrinkEntryEntity(
+                amountMl = amountMl,
+                timestampMs = System.currentTimeMillis(),
+                drinkTypeName = drinkType.name
+            )
+        )
     }
 
     suspend fun deleteDrink(id: Long) {
@@ -35,7 +45,21 @@ class WaterRepository(db: WaterDatabase) {
         settingsDao.save(settings.toEntity())
     }
 
-    private fun DrinkEntryEntity.toDomain() = DrinkEntry(id, amountMl, timestampMs)
+    suspend fun exportCsv(): String {
+        val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val sb = StringBuilder("date,amount_ml,drink_type,effective_ml\n")
+        drinkDao.allEntries().forEach { e ->
+            val type = runCatching { DrinkType.valueOf(e.drinkTypeName) }.getOrDefault(DrinkType.WATER)
+            sb.appendLine("${fmt.format(Date(e.timestampMs))},${e.amountMl},${type.displayName},${(e.amountMl * type.hydrationFactor).toInt()}")
+        }
+        return sb.toString()
+    }
+
+    private fun DrinkEntryEntity.toDomain(): DrinkEntry {
+        val type = runCatching { DrinkType.valueOf(drinkTypeName) }.getOrDefault(DrinkType.WATER)
+        return DrinkEntry(id, amountMl, timestampMs, type)
+    }
+
     private fun SettingsEntity.toDomain() = Settings(
         goalMl, weightKg, reminderEnabled, reminderStartHour, reminderEndHour, reminderIntervalHours,
         cupSizesJson.split(",").mapNotNull { it.trim().toIntOrNull() }.ifEmpty { listOf(150, 200, 250, 300) }

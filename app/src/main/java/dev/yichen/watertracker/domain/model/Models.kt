@@ -3,8 +3,11 @@ package dev.yichen.watertracker.domain.model
 data class DrinkEntry(
     val id: Long = 0,
     val amountMl: Int,
-    val timestampMs: Long
-)
+    val timestampMs: Long,
+    val drinkType: DrinkType = DrinkType.WATER
+) {
+    val effectiveMl: Int get() = (amountMl * drinkType.hydrationFactor).toInt()
+}
 
 data class Settings(
     val goalMl: Int = 2000,

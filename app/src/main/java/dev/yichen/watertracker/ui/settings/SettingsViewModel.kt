@@ -1,6 +1,8 @@
 package dev.yichen.watertracker.ui.settings
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.yichen.watertracker.WaterTrackerApp
@@ -21,6 +23,18 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             repo.saveSettings(settings)
             scheduler.schedule(settings)
+        }
+    }
+
+    fun exportCsv(context: Context) {
+        viewModelScope.launch {
+            val csv = repo.exportCsv()
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, csv)
+                putExtra(Intent.EXTRA_SUBJECT, "WaterTracker Data Export")
+            }
+            context.startActivity(Intent.createChooser(intent, "Export Data"))
         }
     }
 }

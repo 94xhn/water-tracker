@@ -11,6 +11,9 @@ interface DrinkEntryDao {
     @Query("SELECT * FROM drink_entries WHERE timestampMs >= :startMs ORDER BY timestampMs DESC")
     fun entriesFrom(startMs: Long): Flow<List<DrinkEntryEntity>>
 
+    @Query("SELECT * FROM drink_entries ORDER BY timestampMs DESC")
+    suspend fun allEntries(): List<DrinkEntryEntity>
+
     @Insert
     suspend fun insert(entry: DrinkEntryEntity)
 

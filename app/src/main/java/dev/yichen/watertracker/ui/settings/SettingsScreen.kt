@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,6 +50,7 @@ fun SettingsScreen(
     vm: SettingsViewModel = viewModel()
 ) {
     val saved by vm.settings.collectAsState()
+    val context = LocalContext.current
 
     var goalText by remember(saved.goalMl) { mutableStateOf(saved.goalMl.toString()) }
     var weightText by remember(saved.weightKg) {
@@ -194,6 +197,13 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Save")
+            }
+
+            OutlinedButton(
+                onClick = { vm.exportCsv(context) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Export all data as CSV")
             }
 
             Spacer(Modifier.height(16.dp))
