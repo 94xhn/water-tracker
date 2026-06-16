@@ -20,6 +20,9 @@ class WaterRepository(db: WaterDatabase) {
     val settings: Flow<Settings> = settingsDao.observe()
         .map { it?.toDomain() ?: Settings() }
 
+    fun entriesFrom(startMs: Long): Flow<List<DrinkEntry>> =
+        drinkDao.entriesFrom(startMs).map { list -> list.map { it.toDomain() } }
+
     suspend fun addDrink(amountMl: Int) {
         drinkDao.insert(DrinkEntryEntity(amountMl = amountMl, timestampMs = System.currentTimeMillis()))
     }
@@ -33,14 +36,17 @@ class WaterRepository(db: WaterDatabase) {
     }
 
     private fun DrinkEntryEntity.toDomain() = DrinkEntry(id, amountMl, timestampMs)
-    private fun SettingsEntity.toDomain() =
-        Settings(goalMl, weightKg, reminderEnabled, reminderStartHour, reminderEndHour, reminderIntervalHours)
+    private fun SettingsEntity.toDomain() = Settings(
+        goalMl, weightKg, reminderEnabled, reminderStartHour, reminderEndHour, reminderIntervalHours,
+        cupSizesJson.split(",").mapNotNull { it.trim().toIntOrNull() }.ifEmpty { listOf(150, 200, 250, 300) }
+    )
     private fun Settings.toEntity() = SettingsEntity(
         goalMl = goalMl,
         weightKg = weightKg,
         reminderEnabled = reminderEnabled,
         reminderStartHour = reminderStartHour,
         reminderEndHour = reminderEndHour,
-        reminderIntervalHours = reminderIntervalHours
+        reminderIntervalHours = reminderIntervalHours,
+        cupSizesJson = cupSizes.joinToString(",")
     )
 }

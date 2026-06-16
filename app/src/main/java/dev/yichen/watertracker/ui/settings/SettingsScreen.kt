@@ -57,6 +57,10 @@ fun SettingsScreen(
     var startHour by remember(saved.reminderStartHour) { mutableIntStateOf(saved.reminderStartHour) }
     var endHour by remember(saved.reminderEndHour) { mutableIntStateOf(saved.reminderEndHour) }
     var intervalHours by remember(saved.reminderIntervalHours) { mutableIntStateOf(saved.reminderIntervalHours) }
+    var cup1 by remember(saved.cupSizes) { mutableStateOf(saved.cupSizes.getOrElse(0) { 150 }.toString()) }
+    var cup2 by remember(saved.cupSizes) { mutableStateOf(saved.cupSizes.getOrElse(1) { 200 }.toString()) }
+    var cup3 by remember(saved.cupSizes) { mutableStateOf(saved.cupSizes.getOrElse(2) { 250 }.toString()) }
+    var cup4 by remember(saved.cupSizes) { mutableStateOf(saved.cupSizes.getOrElse(3) { 300 }.toString()) }
 
     val weightKg = weightText.toFloatOrNull() ?: 0f
     val recommendedMl = if (weightKg > 0) GoalCalculator.recommendedMl(weightKg) else null
@@ -145,10 +149,32 @@ fun SettingsScreen(
                 }
             }
 
+            HorizontalDivider()
+
+            Text("Quick Add cup sizes (ml)", style = MaterialTheme.typography.labelMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(cup1 to { v: String -> cup1 = v },
+                       cup2 to { v: String -> cup2 = v },
+                       cup3 to { v: String -> cup3 = v },
+                       cup4 to { v: String -> cup4 = v })
+                    .forEachIndexed { idx, (text, setter) ->
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = setter,
+                            label = { Text("Cup ${idx + 1}") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+            }
+
             Spacer(Modifier.height(8.dp))
 
             Button(
                 onClick = {
+                    fun parseCup(s: String, default: Int) =
+                        s.toIntOrNull()?.coerceIn(10, 2000) ?: default
                     vm.save(
                         Settings(
                             goalMl = goalText.toIntOrNull()?.coerceIn(100, 10000) ?: 2000,
@@ -156,7 +182,11 @@ fun SettingsScreen(
                             reminderEnabled = reminderEnabled,
                             reminderStartHour = startHour,
                             reminderEndHour = endHour,
-                            reminderIntervalHours = intervalHours
+                            reminderIntervalHours = intervalHours,
+                            cupSizes = listOf(
+                                parseCup(cup1, 150), parseCup(cup2, 200),
+                                parseCup(cup3, 250), parseCup(cup4, 300)
+                            )
                         )
                     )
                     onBack()

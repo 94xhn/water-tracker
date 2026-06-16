@@ -18,5 +18,6 @@ data class SettingsEntity(
     val reminderEnabled: Boolean = false,
     val reminderStartHour: Int = 8,
     val reminderEndHour: Int = 22,
-    val reminderIntervalHours: Int = 1
+    val reminderIntervalHours: Int = 1,
+    val cupSizesJson: String = "150,200,250,300"
 )
