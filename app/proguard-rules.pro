@@ -1,0 +1,1 @@
+-keep class dev.yichen.watertracker.data.db.** { *; }
