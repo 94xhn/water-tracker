@@ -1,5 +1,6 @@
 package dev.yichen.watertracker.ui.history
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,11 +32,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.yichen.watertracker.domain.GoalCalculator
 import dev.yichen.watertracker.domain.model.DrinkEntry
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -85,11 +90,82 @@ fun HistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
+                    WeekBarChart(days = days, goalMl = settings.goalMl)
+                }
+                item {
                     StatsCard(stats = weekStats, goalMl = settings.goalMl)
                 }
                 items(days, key = { it.dayStartMs }) { day ->
                     DayCard(day = day, goalMl = settings.goalMl)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekBarChart(days: List<DayHistory>, goalMl: Int) {
+    val today = remember { GoalCalculator.todayStartMs() }
+    val dayMap = remember(days) { days.associateBy { it.dayStartMs } }
+    val fmt = remember { SimpleDateFormat("EEE", Locale.getDefault()) }
+
+    val bars = remember(days, today) {
+        (6 downTo 0).map { daysBack ->
+            val dayMs = today - daysBack * 86_400_000L
+            Triple(fmt.format(Date(dayMs)), dayMap[dayMs]?.totalMl ?: 0, daysBack == 0)
+        }
+    }
+    val maxMl = remember(bars, goalMl) {
+        maxOf(bars.maxOfOrNull { it.second } ?: 0, goalMl, 1)
+    }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+    val goalColor = MaterialTheme.colorScheme.error
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+        ) {
+            val n = bars.size
+            val slotW = size.width / n
+            val barW = slotW * 0.55f
+            val chartH = size.height
+
+            bars.forEachIndexed { i, (_, totalMl, isToday) ->
+                val barH = (totalMl.toFloat() / maxMl * chartH).coerceAtLeast(0f)
+                val x = i * slotW + (slotW - barW) / 2f
+                drawRect(
+                    color = if (isToday) primaryColor else surfaceColor,
+                    topLeft = Offset(x, chartH - barH),
+                    size = Size(barW, barH)
+                )
+            }
+
+            if (goalMl > 0) {
+                val goalY = chartH - (goalMl.toFloat() / maxMl * chartH)
+                drawLine(
+                    color = goalColor,
+                    start = Offset(0f, goalY.coerceIn(0f, chartH)),
+                    end = Offset(size.width, goalY.coerceIn(0f, chartH)),
+                    strokeWidth = 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f))
+                )
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth()) {
+            bars.forEach { (label, _, isToday) ->
+                Text(
+                    label,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isToday) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

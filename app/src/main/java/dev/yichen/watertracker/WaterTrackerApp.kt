@@ -12,5 +12,6 @@ class WaterTrackerApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         ensureChannel(this)
+        container.reminderScheduler.scheduleDailyProgress()
     }
 }

@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
@@ -50,6 +52,7 @@ fun SettingsScreen(
     vm: SettingsViewModel = viewModel()
 ) {
     val saved by vm.settings.collectAsState()
+    val customDrinks by vm.customDrinks.collectAsState()
     val context = LocalContext.current
 
     var goalText by remember(saved.goalMl) { mutableStateOf(saved.goalMl.toString()) }
@@ -170,6 +173,77 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+            }
+
+            HorizontalDivider()
+
+            Text("Custom Drink Types", style = MaterialTheme.typography.labelMedium)
+
+            if (customDrinks.isNotEmpty()) {
+                customDrinks.forEach { drink ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "${drink.emoji} ${drink.displayName}  ×${drink.hydrationFactor}",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(onClick = { vm.deleteCustomDrink(drink.customId) }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+
+            var newName by remember { mutableStateOf("") }
+            var newEmoji by remember { mutableStateOf("💧") }
+            var newFactor by remember { mutableStateOf("1.0") }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = newEmoji,
+                    onValueChange = { if (it.length <= 2) newEmoji = it },
+                    label = { Text("Emoji") },
+                    singleLine = true,
+                    modifier = Modifier.width(72.dp)
+                )
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = newFactor,
+                    onValueChange = { newFactor = it },
+                    label = { Text("×Factor") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.width(90.dp)
+                )
+            }
+            OutlinedButton(
+                onClick = {
+                    val factor = newFactor.toFloatOrNull()?.coerceIn(0.1f, 1.5f) ?: 1.0f
+                    if (newName.isNotBlank()) {
+                        vm.addCustomDrink(newName.trim(), newEmoji.ifBlank { "💧" }, factor)
+                        newName = ""; newEmoji = "💧"; newFactor = "1.0"
+                    }
+                },
+                enabled = newName.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("+ Add drink type")
             }
 
             Spacer(Modifier.height(8.dp))

@@ -23,19 +23,33 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS custom_drinks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                emoji TEXT NOT NULL DEFAULT '💧',
+                hydrationFactor REAL NOT NULL DEFAULT 1.0
+            )"""
+        )
+    }
+}
+
 @Database(
-    entities = [DrinkEntryEntity::class, SettingsEntity::class],
-    version = 3,
+    entities = [DrinkEntryEntity::class, SettingsEntity::class, CustomDrinkEntity::class],
+    version = 4,
     exportSchema = false
 )
 abstract class WaterDatabase : RoomDatabase() {
     abstract fun drinkEntryDao(): DrinkEntryDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun customDrinkDao(): CustomDrinkDao
 
     companion object {
         fun build(context: Context): WaterDatabase =
             Room.databaseBuilder(context, WaterDatabase::class.java, "water.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }

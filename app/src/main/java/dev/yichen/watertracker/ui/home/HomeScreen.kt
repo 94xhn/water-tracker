@@ -21,13 +21,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -40,6 +41,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import dev.yichen.watertracker.domain.model.DrinkType
 import androidx.compose.ui.text.input.KeyboardType
@@ -78,8 +80,11 @@ fun HomeScreen(
     val settings by vm.settings.collectAsState()
     val selectedType by vm.selectedDrinkType.collectAsState()
     val streak by vm.streak.collectAsState()
+    val allDrinkTypes by vm.allDrinkTypes.collectAsState()
     val totalMl = entries.sumOf { it.effectiveMl }
     val progress = if (settings.goalMl > 0) totalMl.toFloat() / settings.goalMl else 0f
+
+    var editingEntry by remember { mutableStateOf<DrinkEntry?>(null) }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val launcher = rememberLauncherForActivityResult(
@@ -90,6 +95,18 @@ fun HomeScreen(
                 launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+    editingEntry?.let { entry ->
+        EditEntryDialog(
+            entry = entry,
+            allTypes = allDrinkTypes,
+            onDismiss = { editingEntry = null },
+            onConfirm = { newAmount, newType ->
+                vm.updateEntry(entry.id, newAmount, newType)
+                editingEntry = null
+            }
+        )
     }
 
     Scaffold(
@@ -162,9 +179,9 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(DrinkType.entries) { type ->
+                items(allDrinkTypes) { type ->
                     FilterChip(
-                        selected = selectedType == type,
+                        selected = selectedType.key == type.key,
                         onClick = { vm.selectDrinkType(type) },
                         label = { Text("${type.emoji} ${type.displayName}") }
                     )
@@ -184,7 +201,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (entries.isNotEmpty()) {
-                    androidx.compose.material3.TextButton(onClick = { vm.undoLast() }) {
+                    TextButton(onClick = { vm.undoLast() }) {
                         Text("↩ Undo last", style = MaterialTheme.typography.labelMedium)
                     }
                 }
@@ -256,12 +273,64 @@ fun HomeScreen(
                 Spacer(Modifier.height(4.dp))
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(entries, key = { it.id }) { entry ->
-                        DrinkEntryRow(entry = entry, onDelete = { vm.deleteDrink(entry.id) })
+                        DrinkEntryRow(
+                            entry = entry,
+                            onEdit = { editingEntry = entry },
+                            onDelete = { vm.deleteDrink(entry.id) }
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun EditEntryDialog(
+    entry: DrinkEntry,
+    allTypes: List<DrinkType>,
+    onDismiss: () -> Unit,
+    onConfirm: (amountMl: Int, drinkType: DrinkType) -> Unit
+) {
+    var amountText by remember { mutableStateOf(entry.amountMl.toString()) }
+    var selectedType by remember { mutableStateOf(entry.drinkType) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit entry") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it },
+                    label = { Text("Amount (ml)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
+                Text("Type:", style = MaterialTheme.typography.labelMedium)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(allTypes) { type ->
+                        FilterChip(
+                            selected = selectedType.key == type.key,
+                            onClick = { selectedType = type },
+                            label = { Text("${type.emoji} ${type.displayName}") }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val ml = amountText.toIntOrNull()?.coerceIn(1, 5000) ?: return@TextButton
+                    onConfirm(ml, selectedType)
+                }
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -307,20 +376,23 @@ private fun WaterProgressArc(totalMl: Int, goalMl: Int, progress: Float, goalMet
 }
 
 @Composable
-private fun DrinkEntryRow(entry: DrinkEntry, onDelete: () -> Unit) {
+private fun DrinkEntryRow(entry: DrinkEntry, onEdit: () -> Unit, onDelete: () -> Unit) {
     val fmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val effectiveNote = if (entry.drinkType != dev.yichen.watertracker.domain.model.DrinkType.WATER)
-        " (${entry.effectiveMl} ml effective)" else ""
+    val effectiveNote = if (entry.drinkType.key != "WATER")
+        " (${entry.effectiveMl} ml)" else ""
     ListItem(
         headlineContent = { Text("${entry.drinkType.emoji} ${entry.amountMl} ml$effectiveNote") },
         supportingContent = { Text(fmt.format(Date(entry.timestampMs))) },
         trailingContent = {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     )

@@ -32,7 +32,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     val settings: StateFlow<Settings> = repo.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Settings())
 
-    private val _selectedDrinkType = MutableStateFlow(DrinkType.WATER)
+    val allDrinkTypes: StateFlow<List<DrinkType>> = repo.allDrinkTypes
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DrinkType.PRESETS)
+
+    private val _selectedDrinkType = MutableStateFlow<DrinkType>(DrinkType.WATER)
     val selectedDrinkType: StateFlow<DrinkType> = _selectedDrinkType.asStateFlow()
 
     val streak: StateFlow<Int> = combine(
@@ -65,6 +68,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun undoLast() {
         val last = entries.value.firstOrNull() ?: return
         viewModelScope.launch { repo.deleteDrink(last.id) }
+    }
+
+    fun updateEntry(id: Long, amountMl: Int, drinkType: DrinkType) {
+        viewModelScope.launch { repo.updateDrink(id, amountMl, drinkType) }
     }
 
     private fun dayStartMs(ms: Long): Long {

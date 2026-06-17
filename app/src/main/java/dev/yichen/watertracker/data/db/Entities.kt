@@ -22,3 +22,11 @@ data class SettingsEntity(
     val reminderIntervalHours: Int = 1,
     val cupSizesJson: String = "150,200,250,300"
 )
+
+@Entity(tableName = "custom_drinks")
+data class CustomDrinkEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val emoji: String = "💧",
+    val hydrationFactor: Float = 1.0f
+)
