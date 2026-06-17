@@ -1,7 +1,10 @@
 package dev.yichen.watertracker.ui.home
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.os.Build
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -22,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -104,6 +108,18 @@ fun HomeScreen(
         }
     ) { padding ->
         var customText by remember { mutableStateOf("") }
+
+        val speechLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val spoken = result.data
+                    ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull() ?: ""
+                val digits = Regex("\\d+").find(spoken)?.value
+                if (digits != null) customText = digits
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -196,6 +212,17 @@ fun HomeScreen(
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
+                IconButton(onClick = {
+                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Say the amount in ml")
+                        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                    }
+                    try { speechLauncher.launch(intent) } catch (_: Exception) {}
+                }) {
+                    Icon(Icons.Default.Mic, contentDescription = "Voice input",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
                 FilledTonalButton(
                     onClick = {
                         val amount = customText.toIntOrNull()?.coerceIn(1, 5000)
